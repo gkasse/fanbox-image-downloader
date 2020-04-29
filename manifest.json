@@ -1,0 +1,39 @@
+{
+    "manifest_version": 2,
+    "name": "Pixiv-Fanbox-Image-Downloader",
+    "version": "1.0.1",
+
+    "description": "",
+
+    "icons": {
+        "128": "icons/icon.png"
+    },
+
+    "page_action": {
+        "default_title": "画像をダウンロード"
+    },
+
+    "background": {
+        "persistent": false,
+        "scripts": [
+            "browser-polyfill.min.js",
+            "background.js"
+        ]
+    },
+
+    "content_scripts": [{
+        "matches": ["*://www.fanbox.cc/*"],
+        "js": [
+            "browser-polyfill.min.js",
+            "content.js"
+        ]
+    }],
+
+    "permissions": [
+        "tabs",
+        "activeTab",
+        "downloads",
+        "notifications",
+        "background"
+    ]
+}
