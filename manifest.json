@@ -10,7 +10,7 @@
     },
 
     "page_action": {
-        "default_title": "画像をダウンロード"
+        "default_title": "Fanboxから画像をダウンロード"
     },
 
     "background": {
@@ -22,7 +22,10 @@
     },
 
     "content_scripts": [{
-        "matches": ["*://www.fanbox.cc/*"],
+        "matches": [
+            "*://www.fanbox.cc/*",
+            "*://*.fanbox.cc/*"
+        ],
         "js": [
             "browser-polyfill.min.js",
             "content.js"

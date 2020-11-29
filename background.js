@@ -1,7 +1,6 @@
 chrome.tabs.onUpdated.addListener(tabId => {
     chrome.tabs.get(tabId, tab => {
-        if (/www\.fanbox\.cc\//.test(tab.url)) {
-            
+        if (/^https:\/\/.*\.fanbox\.cc/.test((tab.url))) {
             chrome.pageAction.show(tabId);
         }
     });
@@ -13,12 +12,7 @@ const DEFAULT_NOTIFICATION_OPTION = {
 };
 const NOTIFICATION_ID = 'fantia_image_downloader';
 
-const wait = time => {
-    return new Promise(resolve => setTimeout(() => {
-        console.log('a complete');
-        resolve();
-    }, time));
-};
+const wait = time => new Promise(resolve => setTimeout(() => resolve(), time));
 
 const notification = async opt => {
     const option = {
@@ -44,7 +38,6 @@ chrome.pageAction.onClicked.addListener(async (tab) => {
     });
 
     chrome.tabs.sendMessage(tab.id, {text: 'report_back'}, async urls => {
-        console.log(urls);
         await notification({
             type: 'basic',
             message: `全${urls.length}枚の画像をダウンロードします`,
@@ -58,9 +51,8 @@ chrome.pageAction.onClicked.addListener(async (tab) => {
                     message: `${i+1}/${urls.length}枚目をダウンロード中……`,
                     progress: Math.floor((i + 1) * 100 / urls.length),
                 });
-                chrome.downloads.download({url});
-                
-                await wait(5000);
+                await browser.downloads.download({url});
+                await wait(2000);
             }
 
             await chrome.notifications.clear(NOTIFICATION_ID);
