@@ -1,9 +1,8 @@
-chrome.tabs.onUpdated.addListener(tabId => {
-    chrome.tabs.get(tabId, tab => {
-        if (/^https:\/\/.*\.fanbox\.cc/.test((tab.url))) {
-            chrome.pageAction.show(tabId);
-        }
-    });
+browser.tabs.onUpdated.addListener(async tabId => {
+    const tab = await browser.tabs.get(tabId);
+    if (/^https:\/\/.*\.fanbox\.cc/.test((tab.url))) {
+        browser.pageAction.show(tabId);
+    }
 });
 
 const DEFAULT_NOTIFICATION_OPTION = {
@@ -20,54 +19,59 @@ const notification = async opt => {
         ...opt,
     };
 
-    await chrome.notifications.getAll(async notification => {
-        if (!notification[NOTIFICATION_ID]) {
-            await chrome.notifications.create(NOTIFICATION_ID, option);
-        } else {
-            await chrome.notifications.update(NOTIFICATION_ID, option);
-        }
-    });
+    const notification = await browser.notifications.getAll();
+    if (!notification[NOTIFICATION_ID]) {
+        await chrome.notifications.create(NOTIFICATION_ID, option);
+    } else {
+        await chrome.notifications.update(NOTIFICATION_ID, option);
+    }
 };
 
-chrome.pageAction.onClicked.addListener(async (tab) => {
+browser.pageAction.onClicked.addListener(async (tab) => {
     await chrome.notifications.clear(NOTIFICATION_ID);
+
     await wait(500);
     await notification({
         type: 'basic',
         message: '画像リストの取得を始めます',
     });
 
-    chrome.tabs.sendMessage(tab.id, {text: 'report_back'}, async urls => {
-        await notification({
-            type: 'basic',
-            message: `全${urls.length}枚の画像をダウンロードします`,
-        });
+    const {urls, author, title} = await browser.tabs.sendMessage(tab.id, {text: 'report_back'});
+    await notification({
+        type: 'basic',
+        message: `全${urls.length}枚の画像をダウンロードします`,
+    });
 
-        try {
-            for (let i = 0; i < urls.length; i++) {
-                const url = urls[i];
-                await notification({
-                    type: 'progress',
-                    message: `${i+1}/${urls.length}枚目をダウンロード中……`,
-                    progress: Math.floor((i + 1) * 100 / urls.length),
-                });
-                await browser.downloads.download({url});
-                await wait(2000);
-            }
-
-            await chrome.notifications.clear(NOTIFICATION_ID);
+    try {
+        for (let i = 0; i < urls.length; i++) {
+            const url = urls[i];
             await notification({
-                type: 'basic',
-                message: '画像のダウンロードが完了しました',
+                type: 'progress',
+                message: `${i+1}/${urls.length}枚目をダウンロード中……`,
+                progress: Math.floor((i + 1) * 100 / urls.length),
             });
-        } catch (e) {
-            await chrome.notifications.clear(NOTIFICATION_ID);
-            await notification({
-                type: 'basic',
-                message: '画像のダウンロード中にエラーが発生しました',
+            const filename = new URL(url).pathname.split('/').pop();
+            await browser.downloads.download({
+                url,
+                conflictAction: 'uniquify',
+                filename: `FanboxImageDownloader/${author} - ${title}/p${i + 1}_${filename}`,
+                saveAs: !1,
             });
+            await wait(2000);
         }
 
-        return true;
-    });
+        await browser.notifications.clear(NOTIFICATION_ID);
+        await notification({
+            type: 'basic',
+            message: '画像のダウンロードが完了しました',
+        });
+    } catch (e) {
+        await browser.notifications.clear(NOTIFICATION_ID);
+        await notification({
+            type: 'basic',
+            message: '画像のダウンロード中にエラーが発生しました',
+        });
+    }
+
+    return true;
 });
